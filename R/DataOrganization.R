@@ -158,3 +158,49 @@ ParseData <- function(data,key,parser = StarsAndCommas){
     key <- lapply(key,function(x) parser(x))
     return(list(vals = vals,all.vals = all.vals,key = key))
 }
+
+
+#' Smoothed Correlation Matrix
+#'
+#' Smooth a non positive definite matrix by a brute force algorithm.
+#' 
+#' @param x A matrix requiring smoothing
+#' 
+#' @examples
+#' 
+#' mat <- CorSmooth(x)
+
+CorSmooth <- function(x, ridge = .0001){
+
+    PD <- all(eigen(x)$values > 0)
+    
+    if(PD){
+        message("Submitted Matrix Was already positive definite")
+        return(x)
+    }
+    p <- nrow(x)
+    evals <- eigen(x)$values
+    evectors <- eigen(x)$vectors
+    mat1 <- x
+    mat2 <- x     
+    while(!PD){
+        wch <- sample(1:(p*(p-1)/2),p)
+        mat1[lower.tri(mat1)][wch] <- mat1[lower.tri(mat1)][wch] + runif(p*(p-1)/2,-ridge,ridge)[wch]        
+        mat1[upper.tri(mat1)] <- t(mat1)[upper.tri(mat1)]
+        
+        evals2 <- eigen(mat2)$values
+        evals1 <- eigen(mat1)$values
+        
+        if(min(evals1) > min(evals2)){
+            mat2 <- mat1
+        } else {
+            mat1 <- mat2
+        }
+        evals2 <- eigen(mat2)$values
+        evals1 <- eigen(mat1)$values
+        print(min(evals2))
+        PD <- all(eigen(mat1)$values > 0)
+    }
+    return(mat1)
+}
+
