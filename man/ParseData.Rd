@@ -4,7 +4,7 @@
 \alias{ParseData}
 \title{Parse Data}
 \usage{
-ParseData(data, key, parser = StarsAndCommas)
+ParseData(data, key, parser = OnlyLettersNumbers)
 }
 \arguments{
 \item{data}{A data frame containing a string-encoded response options}

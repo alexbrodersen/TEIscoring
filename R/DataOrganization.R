@@ -64,15 +64,19 @@ Code <- function(parsedData){
     all.vals <- parsedData$all.vals    
     colNames <- names(vals)
     key <- parsedData$key
+    keyLength <- lapply(key,length)
     fin <- NULL
-    total <- 2*length(colNames)
-    pb <- txtProgressBar(min = 0, max = total, style = 3)
-    for(i in 1:length(colNames)){        
+    total <- length(colNames)
+    pb <- txtProgressBar(min = 0, max = total, style = 3)    
+    p <- length(colNames)
+    i <- 1
+    for(i in 1:p){        
         n <- length(vals[[i]])
         y <- vals[[i]]
-        als <- all.vals[[i]]
+        als <- all.vals[[i]]        
         z <- table(als)
-        names(z) <- paste0(colNames[i],"_cat_",names(z))
+        keyZ <- table(c(key[[i]],als)) - 1
+        zNames <- paste0(colNames[i],"_cat_",names(z))
         w <- NULL
         for(j in 1:n){
             z[] <- 0
@@ -83,41 +87,31 @@ Code <- function(parsedData){
             } else{
                 z[] <- table(c(y[[j]],als)) - 1
             }
-            w <- rbind(w,z)
+
+            z <- as.numeric(keyZ == z)
+
+            if(sum(keyZ) == 1){
+                Z <- z[as.logical(keyZ)]
+                names(Z) = zNames[as.logical(keyZ)]
+            } else {
+                Z <- z
+                names(Z) = zNames
+            }
+            w <- rbind(w,Z)
         }
+        
+
         fin <- cbind(fin,w)
         setTxtProgressBar(pb, i)
     }
-
-    colNames <- names(key)
-    finKey <- NULL
-    for(i in 1:length(colNames)){        
-        n <- length(key[[i]])
-        y <- key[[i]]
-        als <- all.vals[[i]]
-        z <- table(als)
-        names(z) <- paste0(colNames[i],"_cat_",names(z))
-        w <- NULL
-        for(j in 1:n){
-            z[] <- 0
-            if(length(y[[j]]) == 0){
-                z[] <- NA
-            } else if(any(is.na(y[[j]]))){
-                z[] <- NA
-            } else{
-                z[] <- table(c(y[[j]],als)) - 1
-            }
-            w <- rbind(w,z)
-        }
-        finKey <- cbind(finKey,w)
-        setTxtProgressBar(pb, total/2 + i)
-    }
+    
     close(pb)
-    coded <- apply((fin == finKey),2,function(x) as.numeric(x))
+    coded <- fin
+    
     return(coded)
 }
 
-#' Default Parser
+#' Default Parsers
 #'
 #' An example (default) parser for the ParseData function.
 #'
@@ -136,6 +130,30 @@ StarsAndCommas <- function(x){
     strsplit(x,"[ *, ]+")
 }
 
+#' Default Parsers
+#'
+#' An example (default) parser for the ParseData function.
+#'
+#' @param x a string to parse
+#'
+#' @keywords code 
+#' @export
+#' @examples
+#' ### Pasrse the data
+#' parsedData <- ParseData(resps,key)
+#' 
+#' ### Code the data based on the keys
+#' codedData <- Code(parsedData)
+
+strsplit("GGG","")
+OnlyLettersNumbers <- function(x){
+    z <- strsplit(x,"[^A-Z0-9]")
+    z <- lapply(z, function(x) strsplit(x,""))
+    
+    return(z)
+}
+
+
 #' Parse Data
 #'
 #' Parse data into a generic form.
@@ -152,10 +170,10 @@ StarsAndCommas <- function(x){
 #' ### Code the data based on the keys
 #' codedData <- Code(parsedData)
 
-ParseData <- function(data,key,parser = StarsAndCommas){
+ParseData <- function(data,key,parser = OnlyLettersNumbers){
     vals <- lapply(data,function(x) parser(x))
     all.vals <- lapply(data,function(x) unique(unlist(parser(x))))
-    key <- lapply(key,function(x) parser(x))
+    key <- lapply(key,function(x) unique(unlist(parser(x))))
     return(list(vals = vals,all.vals = all.vals,key = key))
 }
 
